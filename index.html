@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ranita con Confeti Mágico</title>
+  <title>Para Ti 💖</title>
   <style>
     body {
       margin: 0;
@@ -35,10 +35,6 @@
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
 
-    .boton-rana:hover img {
-      transform: scale(1.05);
-    }
-
     .mensaje {
       background: white;
       padding: 20px;
@@ -67,7 +63,7 @@
   </button>
 
   <div id="mensaje1" class="mensaje">¡Te amo como esta ranita! 🐸💖</div>
-  <div id="mensaje2" class="mensaje">Y te seguré amando cada día más. 💗🐸</div>
+  <div id="mensaje2" class="mensaje">Y te seguiré amando cada día más. 💗🐸</div>
 
   <canvas id="confetti"></canvas>
 
@@ -110,14 +106,11 @@
           x: Math.random() * w,
           y: Math.random() * h - h,
           r: Math.random() * 6 + 2,
-          d: Math.random() * 100,
           vx: Math.random() * 2 - 1,
           vy: Math.random() * 2 + 1,
           color: ["#ff69b4", "#ffd700", "#87ceeb", "#98fb98", "#ffffff"][Math.floor(Math.random() * 5)],
           shape: Math.random() > 0.5 ? "circle" : "star",
           stopped: false,
-          draggable: false,
-          vyOriginal: 0,  // para resetear después del agite
           jump: 0
         });
       }
@@ -126,10 +119,7 @@
       interactivo = false;
       animateConfetti();
 
-      // detener caída después de 5 seg
       setTimeout(() => { animando = false; }, 5000);
-
-      // permitir interacción luego de 30 seg
       setTimeout(() => { interactivo = true; }, 30000);
     }
 
@@ -137,24 +127,21 @@
       ctx.save();
       ctx.beginPath();
       ctx.translate(x, y);
-      ctx.moveTo(0, 0 - r);
+      ctx.moveTo(0, -r);
       for (let i = 0; i < 5; i++) {
         ctx.rotate(Math.PI / 5);
-        ctx.lineTo(0, 0 - (r * 0.5));
+        ctx.lineTo(0, -r * 0.5);
         ctx.rotate(Math.PI / 5);
-        ctx.lineTo(0, 0 - r);
+        ctx.lineTo(0, -r);
       }
       ctx.closePath();
       ctx.fillStyle = color;
       ctx.fill();
       ctx.restore();
     }
-
     function animateConfetti() {
       ctx.clearRect(0, 0, w, h);
-      for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
-
+      for (let p of particles) {
         if (!p.stopped && animando) {
           p.x += p.vx;
           p.y += p.vy;
@@ -166,11 +153,10 @@
           }
         }
 
-        // Si saltaron por agitar, actualizar posición
         if (p.jump > 0) {
           p.y -= p.jump;
-          p.jump *= 0.95; // va bajando poco a poco el salto
-          if (p.jump < 0.1) p.jump = 0;
+          p.jump *= 0.9;
+          if (p.jump < 0.5) p.jump = 0;
         }
 
         if (p.shape === "circle") {
@@ -186,25 +172,19 @@
       requestAnimationFrame(animateConfetti);
     }
 
-    // interacción: mover confeti
+    // arrastrar confeti
     let dragging = false;
     let dragIndex = null;
 
     canvas.addEventListener("mousedown", startDrag);
     canvas.addEventListener("touchstart", startDrag, { passive: false });
-
     canvas.addEventListener("mousemove", dragMove);
     canvas.addEventListener("touchmove", dragMove, { passive: false });
-
     canvas.addEventListener("mouseup", endDrag);
     canvas.addEventListener("touchend", endDrag);
 
     function getPointerPos(e) {
-      if (e.touches) {
-        return { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      } else {
-        return { x: e.clientX, y: e.clientY };
-      }
+        return e.touches ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : { x: e.clientX, y: e.clientY };
     }
 
     function startDrag(e) {
@@ -229,59 +209,40 @@
       const p = particles[dragIndex];
       p.x = pos.x;
       p.y = pos.y;
-      p.jump = 0; // cancelar salto si lo mueves
+      p.jump = 0;
     }
+
     function endDrag() {
       dragging = false;
       dragIndex = null;
     }
 
-    // Detectar agite celular
+    // agitar para hacer saltar confeti
     if (window.DeviceMotionEvent) {
       let lastShake = 0;
       window.addEventListener("devicemotion", (event) => {
         const acc = event.accelerationIncludingGravity;
         const now = Date.now();
-        const shakeThreshold = 15; // Ajusta sensibilidad
+        if (!interactivo || !acc) return;
 
-        if (!interactivo) return;
-
-        if (acc) {
-          const totalAcc = Math.sqrt(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
-          if (totalAcc > shakeThreshold && (now - lastShake) > 1000) {
-            lastShake = now;
-            saltarConfeti();
-          }
+        const total = Math.sqrt(acc.x * 2 + acc.y * 2 + acc.z ** 2);
+        if (total > 15 && (now - lastShake) > 1000) {
+          lastShake = now;
+          saltarConfeti();
         }
       });
     }
 
     function saltarConfeti() {
-      // Hacer que confeti salte y suene
       audio.currentTime = 0;
       audio.play();
-
       for (const p of particles) {
         if (p.stopped) {
-          p.jump = Math.random() * 15 + 10; // salto random
+          p.jump = Math.random() * 15 + 10;
         }
       }
     }
   </script>
-    <script>
-  if (window.DeviceMotionEvent) {
-    window.addEventListener('devicemotion', event => {
-      const acc = event.accelerationIncludingGravity;
-      if (acc) {
-        const totalAcc = Math.sqrt(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
-        if (totalAcc > 15) {
-          alert('¡Moviste el celular!');
-        }
-      }
-    });
-  } else {
-    alert('Tu dispositivo no soporta DeviceMotionEvent');
-  }
-</script>
+
 </body>
 </html>
