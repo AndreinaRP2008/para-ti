@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ranita con Confeti Mágico</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #ffeef2;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+      font-family: sans-serif;
+      transition: background 0.5s ease;
+    }
+
+    .boton-rana {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      margin-bottom: 20px;
+      z-index: 1;
+    }
+
+    .boton-rana img {
+      width: 150px;
+      max-width: 60vw;
+      transition: transform 0.3s;
+      border-radius: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    .boton-rana:hover img {
+      transform: scale(1.05);
+    }
+
+    .mensaje {
+      background: white;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      font-size: 18px;
+      text-align: center;
+      max-width: 80%;
+      display: none;
+      z-index: 2;
+    }
+
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      pointer-events: auto;
+      z-index: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <button class="boton-rana" onclick="mostrarMensajes()">
+    <img src="ranitacorazon.webp" alt="Ranita con corazón" />
+  </button>
+
+  <div id="mensaje1" class="mensaje">¡Te amo como esta ranita! 🐸💖</div>
+  <div id="mensaje2" class="mensaje">Y te seguré amando cada día más. 💗🐸</div>
+
+  <canvas id="confetti"></canvas>
+
+  <audio id="tintineo" src="https://actions.google.com/sounds/v1/ambiences/magic_chime.ogg"></audio>
+
+  <script>
+    const canvas = document.getElementById("confetti");
+    const ctx = canvas.getContext("2d");
+    const audio = document.getElementById("tintineo");
+    let w, h;
+    let particles = [];
+    let animando = false;
+    let interactivo = false;
+
+    function resizeCanvas() {
+      w = canvas.width = window.innerWidth;
+      h = canvas.height = window.innerHeight;
+    }
+
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    function mostrarMensajes() {
+      document.body.style.backgroundColor = '#ffc9e3';
+      document.getElementById("mensaje1").style.display = "block";
+      document.getElementById("mensaje2").style.display = "none";
+
+      setTimeout(() => {
+        document.getElementById("mensaje1").style.display = "none";
+        document.getElementById("mensaje2").style.display = "block";
+        lanzarConfeti();
+      }, 3000);
+    }
+
+    function lanzarConfeti() {
+      particles = [];
+
+      for (let i = 0; i < 100; i++) {
+        particles.push({
+          x: Math.random() * w,
+          y: Math.random() * h - h,
+          r: Math.random() * 6 + 2,
+          d: Math.random() * 100,
+          vx: Math.random() * 2 - 1,
+          vy: Math.random() * 2 + 1,
+          color: ["#ff69b4", "#ffd700", "#87ceeb", "#98fb98", "#ffffff"][Math.floor(Math.random() * 5)],
+          shape: Math.random() > 0.5 ? "circle" : "star",
+          stopped: false,
+          draggable: false,
+          vyOriginal: 0,  // para resetear después del agite
+          jump: 0
+        });
+      }
+
+      animando = true;
+      interactivo = false;
+      animateConfetti();
+
+      // detener caída después de 5 seg
+      setTimeout(() => { animando = false; }, 5000);
+
+      // permitir interacción luego de 30 seg
+      setTimeout(() => { interactivo = true; }, 30000);
+    }
+
+    function drawStar(x, y, r, color) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.translate(x, y);
+      ctx.moveTo(0, 0 - r);
+      for (let i = 0; i < 5; i++) {
+        ctx.rotate(Math.PI / 5);
+        ctx.lineTo(0, 0 - (r * 0.5));
+        ctx.rotate(Math.PI / 5);
+        ctx.lineTo(0, 0 - r);
+      }
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function animateConfetti() {
+      ctx.clearRect(0, 0, w, h);
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+
+        if (!p.stopped && animando) {
+          p.x += p.vx;
+          p.y += p.vy;
+          if (p.y >= h - p.r) {
+            p.y = h - p.r;
+            p.vx = 0;
+            p.vy = 0;
+            p.stopped = true;
+          }
+        }
+
+        // Si saltaron por agitar, actualizar posición
+        if (p.jump > 0) {
+          p.y -= p.jump;
+          p.jump *= 0.95; // va bajando poco a poco el salto
+          if (p.jump < 0.1) p.jump = 0;
+        }
+
+        if (p.shape === "circle") {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = p.color;
+          ctx.fill();
+        } else {
+          drawStar(p.x, p.y, p.r, p.color);
+        }
+      }
+
+      requestAnimationFrame(animateConfetti);
+    }
+
+    // interacción: mover confeti
+    let dragging = false;
+    let dragIndex = null;
+
+    canvas.addEventListener("mousedown", startDrag);
+    canvas.addEventListener("touchstart", startDrag, { passive: false });
+
+    canvas.addEventListener("mousemove", dragMove);
+    canvas.addEventListener("touchmove", dragMove, { passive: false });
+
+    canvas.addEventListener("mouseup", endDrag);
+    canvas.addEventListener("touchend", endDrag);
+
+    function getPointerPos(e) {
+      if (e.touches) {
+        return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      } else {
+        return { x: e.clientX, y: e.clientY };
+      }
+    }
+
+    function startDrag(e) {
+      if (!interactivo) return;
+      const pos = getPointerPos(e);
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        const dx = pos.x - p.x;
+        const dy = pos.y - p.y;
+        if (Math.sqrt(dx * dx + dy * dy) < p.r + 5) {
+          dragging = true;
+          dragIndex = i;
+          break;
+        }
+      }
+    }
+
+    function dragMove(e) {
+      if (!interactivo || !dragging || dragIndex === null) return;
+      e.preventDefault();
+      const pos = getPointerPos(e);
+      const p = particles[dragIndex];
+      p.x = pos.x;
+      p.y = pos.y;
+      p.jump = 0; // cancelar salto si lo mueves
+    }
+    function endDrag() {
+      dragging = false;
+      dragIndex = null;
+    }
+
+    // Detectar agite celular
+    if (window.DeviceMotionEvent) {
+      let lastShake = 0;
+      window.addEventListener("devicemotion", (event) => {
+        const acc = event.accelerationIncludingGravity;
+        const now = Date.now();
+        const shakeThreshold = 15; // Ajusta sensibilidad
+
+        if (!interactivo) return;
+
+        if (acc) {
+          const totalAcc = Math.sqrt(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
+          if (totalAcc > shakeThreshold && (now - lastShake) > 1000) {
+            lastShake = now;
+            saltarConfeti();
+          }
+        }
+      });
+    }
+
+    function saltarConfeti() {
+      // Hacer que confeti salte y suene
+      audio.currentTime = 0;
+      audio.play();
+
+      for (const p of particles) {
+        if (p.stopped) {
+          p.jump = Math.random() * 15 + 10; // salto random
+        }
+      }
+    }
+  </script>
+    <script>
+  if (window.DeviceMotionEvent) {
+    window.addEventListener('devicemotion', event => {
+      const acc = event.accelerationIncludingGravity;
+      if (acc) {
+        const totalAcc = Math.sqrt(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
+        if (totalAcc > 15) {
+          alert('¡Moviste el celular!');
+        }
+      }
+    });
+  } else {
+    alert('Tu dispositivo no soporta DeviceMotionEvent');
+  }
+</script>
+</body>
+</html>
