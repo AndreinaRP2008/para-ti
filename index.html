@@ -218,20 +218,17 @@
     }
 
     // agitar para hacer saltar confeti
-    if (window.DeviceMotionEvent) {
-      let lastShake = 0;
-      window.addEventListener("devicemotion", (event) => {
-        const acc = event.accelerationIncludingGravity;
-        const now = Date.now();
-        if (!interactivo || !acc) return;
+   if (window.DeviceMotionEvent) {
+  window.addEventListener("devicemotion", (event) => {
+    const acc = event.acceleration;
+    if (!interactivo || !acc) return;
 
-        const total = Math.sqrt(acc.x * 2 + acc.y * 2 + acc.z ** 2);
-        if (total > 1 && (now - lastShake) > 500) {
-          lastShake = now;
-          saltarConfeti();
-        }
-      });
+    const total = Math.abs(acc.x) + Math.abs(acc.y) + Math.abs(acc.z);
+    if (total > 3) {
+      saltarConfeti();
     }
+  });
+}
 
     function saltarConfeti() {
       audio.currentTime = 0;
